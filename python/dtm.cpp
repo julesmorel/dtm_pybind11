@@ -13,5 +13,11 @@ void init_dtm(py::module &m) {
          py::overload_cast<int,int,int>( &dtm::polygonize),
          py::arg("nx"),py::arg("ny"),py::arg("nz"))
     .def("display",
-         py::overload_cast<>( &dtm::display));     
+         py::overload_cast<>( &dtm::display))
+    .def("applyDeformableModel",
+         py::overload_cast<int,double>( &dtm::applyDeformableModel),
+         py::arg("numberIteration"),py::arg("gamma"))
+    .def("exportDTM",
+         py::overload_cast<std::string>( &dtm::exportDTM),
+         py::arg("filename"));               
 }

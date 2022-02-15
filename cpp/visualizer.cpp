@@ -5,11 +5,13 @@
 #include <pcl/surface/concave_hull.h>
 #include <pcl/io/ply_io.h>
 
-visualizer::visualizer(pcl::PointCloud<pcl::PointXYZI> _pointsMin, pcl::PointCloud<pcl::PointXYZ> _pointsRectangleMin, surfaceFrbf _functionalRBFModel)
+visualizer::visualizer(pcl::PointCloud<pcl::PointXYZI> _pointsMin, pcl::PointCloud<pcl::PointXYZ> _pointsRectangleMin, surfaceFrbf _functionalRBFModel, surfaceCsrbf _CSRBFModel, bool _deformableModelApplied)
 {
   pointsMin=_pointsMin;
   pointsRectangleMin=_pointsRectangleMin;
   functionalRBFModel=_functionalRBFModel;
+  CSRBFModel=_CSRBFModel;
+  deformableModelApplied=_deformableModelApplied;
   float zmin=std::numeric_limits<float>::infinity();
   for(int i=0;i<pointsMin.size();i++){
     if(pointsMin.at(i).z<zmin){
@@ -40,11 +42,11 @@ void visualizer::plot()
 {
   pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
 
-  float deltaZ=2.0;
+  float deltaZ=5.0;
 
   viewer->setBackgroundColor (0.9, 0.9, 0.9);
 
-  pcl::PointCloud<pcl::PointXYZRGB> minRGB = addColorToPointCloudwithI(pointsMin,200,250,200,-0.*deltaZ);
+  pcl::PointCloud<pcl::PointXYZRGB> minRGB = addColorToPointCloudwithI(pointsMin,200,250,200,0.);
 
   pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr minptr = minRGB.makeShared();
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb_min(minptr);
@@ -52,11 +54,23 @@ void visualizer::plot()
   viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "min");
 
   // //plot the quadtree
-   addQuadtreeAsMesh(viewer,lowestPtsZ-1*deltaZ,0.5,0.5,0.5,"quatree",0.98);
-  // addSquare(viewer,pointsRectangleMin,lowestPtsZ-0.4*deltaZ,0.9,0.9,0.4,"bbs",1.0);
-  // addMinPointsConcaveHull(viewer,lowestPtsZ-0.4*deltaZ);
-  // addSquare(viewer,pointsRectangleMin,lowestPtsZ-0.8*deltaZ,0.7,0.7,0.9,"bbsm",1.0);
-   addSurfaceMesh(viewer,0);
+  if(!deformableModelApplied){
+    addSquare(viewer,pointsRectangleMin,lowestPtsZ-2*deltaZ,0.9,0.9,0.4,"bbs",1.0);
+    addQuadtreeAsMesh(viewer,lowestPtsZ-2*deltaZ,0.5,0.5,0.5,"quatree",0.98);
+    addSquare(viewer,pointsRectangleMin,lowestPtsZ-1*deltaZ,0.7,0.7,0.9,"bbsm",1.0);
+    addQuadsSurfaceMesh(viewer,-1*deltaZ);
+    addSurfaceMesh(viewer,functionalRBFModel.getLevelSet(),0.,0.5, 0.5, 0.95, "functionalRBFModel");
+  }else{
+    addSquare(viewer,pointsRectangleMin,lowestPtsZ-3*deltaZ,0.9,0.9,0.4,"bbs",1.0);
+    addQuadtreeAsMesh(viewer,lowestPtsZ-3*deltaZ,0.5,0.5,0.5,"quatree",0.98);
+    addSquare(viewer,pointsRectangleMin,lowestPtsZ-2*deltaZ,0.7,0.7,0.9,"bbsm",1.0);
+    addQuadsSurfaceMesh(viewer,-2*deltaZ);
+    addSurfaceMesh(viewer,functionalRBFModel.getLevelSet(),-1*deltaZ,0.5, 0.5, 0.95, "functionalRBFModel");
+    addSurfaceMesh(viewer,CSRBFModel.getLevelSet(),0.,0.5, 0.8, 0.9, "CSRBFModel");
+  }
+
+
+
   //
   // viewer->addCoordinateSystem (1.0);
   // viewer->initCameraParameters ();
@@ -64,7 +78,7 @@ void visualizer::plot()
   // viewer->setCameraPosition(25.6292, -183.596, 16.0492, -3.02173, -0.968898, -27.6203, 0.00256659, 0.415112, 0.909767);
   // viewer->setCameraClipDistances(55.3839, 192.787);
   // viewer->setPosition(372, 208);
-  // viewer->setSize(1600, 2000);
+   viewer->setSize(2000, 2000);
 
   //--------------------
   // -----Main loop-----
@@ -76,7 +90,7 @@ void visualizer::plot()
   }
 }
 
-void visualizer::addSquare(pcl::visualization::PCLVisualizer::Ptr viewer, pcl::PointCloud<pcl::PointXYZ> rect, float z, double r, double g, double b, std::string stringid, float alpha)
+void visualizer::addSquare(pcl::visualization::PCLVisualizer::Ptr viewer, pcl::PointCloud<pcl::PointXYZ> &rect, float z, double r, double g, double b, std::string stringid, float alpha)
 {
   pcl::PointXYZ p1;
   p1.x=alpha*rect.at(0).x+(1-alpha)*rect.at(2).x;
@@ -152,12 +166,12 @@ void visualizer::addQuadtreeAsMesh(pcl::visualization::PCLVisualizer::Ptr viewer
   viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.3, 0.3, 0.3, "Polymesh");
 }
 
-void visualizer::addSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer, float deltaZ=0.)
+void visualizer::addSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer, const isoSurface & surface, float deltaZ, double r, double g, double b, std::string stringid)
 {
   pcl::PolygonMesh mesh;
   pcl::PointCloud<pcl::PointXYZ> polygonsPts;
   std::vector<pcl::Vertices> polygonIds;
-  const isoSurface iso = functionalRBFModel.getLevelSet();
+  const isoSurface iso = surface;
   //std::ofstream fileStream("mesh.xyz", std::ios::out | std::ios::trunc);
   for(std::size_t i=0; i<iso.getTriangles().size();i++)
   {
@@ -182,28 +196,44 @@ void visualizer::addSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer, f
   pcl::toPCLPointCloud2 (polygonsPts, mesh.cloud);
   mesh.polygons = polygonIds;
   //pcl::io::savePLYFileBinary ("surface.ply", mesh);
-  viewer->addPolygonMesh(mesh,"surfaceMesh");
-  viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 0.95, "surfaceMesh");
-  viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.5, 0.5, 0.95, "surfaceMesh");
+  viewer->addPolygonMesh(mesh,stringid);
+  viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 0.85, stringid);
+  viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, r,g,b,stringid);
 }
 
-void visualizer::addMinPointsConcaveHull(pcl::visualization::PCLVisualizer::Ptr viewer, float z)
+void visualizer::addQuadsSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer, float z)
 {
   pcl::PolygonMesh mesh;
-  pcl::PointCloud<pcl::PointXYZI> polygonsPts;
+  pcl::PointCloud<pcl::PointXYZ> polygonsPts;
   std::vector<pcl::Vertices> polygonIds;
+  std::deque<quadLeaf*> listLeaf = functionalRBFModel.getTree()->getListLeaf();
+  int idt=0;
+  for(std::size_t j=0;j<listLeaf.size();j++)
+  {if(!listLeaf.at(j)->isEmpty()){
+      for(std::size_t i=0; i<listLeaf.at(j)->getLevelSet().getTriangles().size();i++)
+      {
+          pcl::PointXYZ p1 = listLeaf.at(j)->getLevelSet().getMapPoints().at(listLeaf.at(j)->getLevelSet().getTriangles().at(i).pointIndex[0]);
+          pcl::PointXYZ p2 = listLeaf.at(j)->getLevelSet().getMapPoints().at(listLeaf.at(j)->getLevelSet().getTriangles().at(i).pointIndex[1]);
+          pcl::PointXYZ p3 = listLeaf.at(j)->getLevelSet().getMapPoints().at(listLeaf.at(j)->getLevelSet().getTriangles().at(i).pointIndex[2]);
+          p1.z=p1.z+z;
+          p2.z=p2.z+z;
+          p3.z=p3.z+z;
+          polygonsPts.push_back(p1);
+          polygonsPts.push_back(p2);
+          polygonsPts.push_back(p3);
+          pcl::Vertices face;
+          face.vertices.push_back(3*idt+0);
+          face.vertices.push_back(3*idt+1);
+          face.vertices.push_back(3*idt+2);
+          polygonIds.push_back(face);
 
-  pcl::PointCloud<pcl::PointXYZI> minPts = pointsMin;
-  for(int i = 0; i < minPts.size(); i++)
-        minPts.at(i).z = z;
-  pcl::ConcaveHull<pcl::PointXYZI> chull;
-  chull.setInputCloud (minPts.makeShared());
-  chull.setAlpha (0.5);
-  chull.reconstruct (polygonsPts, polygonIds);
-
+          idt++;
+      }
+  }}
   pcl::toPCLPointCloud2 (polygonsPts, mesh.cloud);
   mesh.polygons = polygonIds;
-  viewer->addPolylineFromPolygonMesh(mesh,"ConcaveHull");
-  viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 0.1, "ConcaveHull");
-  viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.7, 0.8, 0.4, "ConcaveHull");
+  //pcl::io::savePLYFileBinary ("quadssurface.ply", mesh);
+  viewer->addPolygonMesh(mesh,"quadsSurfaceMesh");
+  viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 0.7, "quadsSurfaceMesh");
+  viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.5, 0.95, 0.5, "quadsSurfaceMesh");
 }

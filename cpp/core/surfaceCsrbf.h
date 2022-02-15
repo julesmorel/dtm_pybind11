@@ -18,7 +18,7 @@ class surfaceCsrbf : public implicitFunction
 public:
 
     surfaceCsrbf(){}
-    surfaceCsrbf(surfaceFrbf& psurface,float refinementValue, pcl::PointCloud<pcl::PointXYZI> &pCloud);
+    surfaceCsrbf(surfaceFrbf& psurface, pcl::PointCloud<pcl::PointXYZI> &pCloud, float refinementValue=0.1f);
 
     pcl::PointCloud<csrbfPCL>& getCloudCsrbf(){return cloudCsrbf;}
     std::vector<quadleafCsrbf>& getListLeafs(){return listLeafs;}

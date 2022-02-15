@@ -1,5 +1,6 @@
 #include "dtm.h"
 #include "visualizer.h"
+#include "core/surfaceDeformer.h"
 
 #include<iostream>
 #include <fstream>
@@ -13,6 +14,7 @@ dtm::dtm(std::string _filename, std::string _filenameRect, int _minNumberPointsP
   readAsciiFile(_filenameRect,pointsRectangleMin);
   surfaceFrbf surface(pointsMin,_minNumberPointsPerLeaf,_minSizeLeaf,pointsRectangleMin);
   functionalRBFModel=surface;
+  deformableModelApplied=false;
 }
 
 void dtm::polygonize(int nx, int ny, int nz){
@@ -20,11 +22,30 @@ void dtm::polygonize(int nx, int ny, int nz){
   pcl::getMinMax3D (pointsMin, min, max);
   rectangle tile(pointsRectangleMin);
   functionalRBFModel.polygonizeLevelSet(tile,min.z-1.5,max.z+1.5,nx,ny,nz);
+  if(deformableModelApplied)CSRBFModel.polygonizeLevelSet(tile,min.z-1.5,max.z+1.5,nx,ny,nz);
 }
 
 void dtm::display(){
-  visualizer v(pointsMin,pointsRectangleMin, functionalRBFModel);
+  functionalRBFModel.getTree()->buildLeafsSurface();
+  visualizer v(pointsMin,pointsRectangleMin, functionalRBFModel, CSRBFModel, deformableModelApplied);
   v.plot();
+}
+
+void dtm::applyDeformableModel(int numberIteration, double gamma){
+  deformableModelApplied=true;
+  surfaceCsrbf surface(functionalRBFModel, pointsMin);
+  CSRBFModel=surface;
+  for(int it=0;it<numberIteration;it++)
+  {
+    surfaceDeformer deformer(CSRBFModel,pointsMin,gamma);
+    deformer.deform(pointsMin);
+    surfaceCsrbf surfCsrbftmp = deformer.getSurface();
+    CSRBFModel=surfCsrbftmp;
+  }
+}
+
+void dtm::exportDTM(std::string filename){
+
 }
 
 void dtm::readAsciiFile(std::string filename, pcl::PointCloud<pcl::PointXYZ>& points){
@@ -70,6 +91,7 @@ pcl::PointCloud<pcl::PointXYZI> dtm::computeDensityAtEachPoints(pcl::PointCloud<
         double sum = densities.at(i);
         p.intensity=1.-sum/maxDensity;
         ptsMinEnriched.push_back(p);
+
     }
     return ptsMinEnriched;
 }

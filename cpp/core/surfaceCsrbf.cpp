@@ -11,7 +11,7 @@
 
 #include <boost/thread.hpp>
 
-surfaceCsrbf::surfaceCsrbf(surfaceFrbf& psurface,float refinementValue, pcl::PointCloud<pcl::PointXYZI> &pCloud)
+surfaceCsrbf::surfaceCsrbf(surfaceFrbf& psurface, pcl::PointCloud<pcl::PointXYZI> &pCloud, float refinementValue)
 {
     progress_bar progress{std::clog, 70u, "    Transforming PU model into CSRBF model"};
 
