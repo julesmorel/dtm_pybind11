@@ -31,7 +31,7 @@ pcl::PointCloud<pcl::PointXYZRGB> visualizer::addColorToPointCloudwithI(pcl::Poi
     prgb.z=pts.at(i).z+deltaZ;
     // pack r/g/b into rgb
     float it = 1.-pts.at(i).intensity;
-    uint32_t rgb = ((uint32_t)((float)r*it) << 16 | (uint32_t)((float)g*it) << 8 | (uint32_t)((float)b*it));
+    uint32_t rgb = (static_cast<uint32_t>(static_cast<float>(r*it)) << 16 | static_cast<uint32_t>(static_cast<float>(g*it)) << 8 | static_cast<uint32_t>(static_cast<float>(b*it)));
     prgb.rgb = *reinterpret_cast<float*>(&rgb);
     ptsrgb.push_back(prgb);
   }

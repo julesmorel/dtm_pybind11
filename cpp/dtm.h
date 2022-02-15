@@ -29,6 +29,7 @@ private:
 
   void readAsciiFile(std::string filename, pcl::PointCloud<pcl::PointXYZ>& points);
   pcl::PointCloud<pcl::PointXYZI> computeDensityAtEachPoints(pcl::PointCloud<pcl::PointXYZ> _inputPoints);
+  pcl::PolygonMesh buildMeshFromSurface(const isoSurface &iso);
 };
 
 #endif // DTM_H

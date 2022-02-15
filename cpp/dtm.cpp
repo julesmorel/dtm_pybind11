@@ -6,6 +6,7 @@
 #include <fstream>
 #include <boost/algorithm/string.hpp>
 #include <pcl/common/common.h>
+#include <pcl/io/obj_io.h>
 
 dtm::dtm(std::string _filename, std::string _filenameRect, int _minNumberPointsPerLeaf, double _minSizeLeaf){
   pcl::PointCloud<pcl::PointXYZ> pointMinTemp;
@@ -45,7 +46,38 @@ void dtm::applyDeformableModel(int numberIteration, double gamma){
 }
 
 void dtm::exportDTM(std::string filename){
+  pcl::PolygonMesh mesh;
+  if(deformableModelApplied){
+    const isoSurface iso = CSRBFModel.getLevelSet();
+    mesh = buildMeshFromSurface(iso);
+  }else{
+    const isoSurface iso = functionalRBFModel.getLevelSet();
+    mesh = buildMeshFromSurface(iso);
+  }
+  pcl::io::saveOBJFile (filename, mesh);
+}
 
+pcl::PolygonMesh dtm::buildMeshFromSurface(const isoSurface &iso){
+  pcl::PolygonMesh mesh;
+  pcl::PointCloud<pcl::PointXYZ> polygonsPts;
+  std::vector<pcl::Vertices> polygonIds;
+  for(std::size_t i=0; i<iso.getTriangles().size();i++)
+  {
+      pcl::PointXYZ p1 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[0]);
+      pcl::PointXYZ p2 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[1]);
+      pcl::PointXYZ p3 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[2]);
+      polygonsPts.push_back(p1);
+      polygonsPts.push_back(p2);
+      polygonsPts.push_back(p3);
+      pcl::Vertices face;
+      face.vertices.push_back(3*i+0);
+      face.vertices.push_back(3*i+1);
+      face.vertices.push_back(3*i+2);
+      polygonIds.push_back(face);
+  }
+  pcl::toPCLPointCloud2 (polygonsPts, mesh.cloud);
+  mesh.polygons = polygonIds;
+  return mesh;
 }
 
 void dtm::readAsciiFile(std::string filename, pcl::PointCloud<pcl::PointXYZ>& points){
