@@ -24,15 +24,18 @@
 #include "isosurface.h"
 #include <math.h>
 #include <float.h>
+#include <climits>
 
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/PolygonMesh.h>
 #include <pcl/io/ply_io.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 #include "../core/rectangle.h"
 
 #include <iostream>
 #include <fstream>
+#include <iterator>
 
 const unsigned int isoSurface::edgeTable[256] = {
     0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
@@ -566,26 +569,9 @@ void isoSurface::generateSurface()
         listTriangles.push_back(tri);
         counter = counter+3;
     }
+
+    removeDuplicatePoints();
 }
-
-/*void isoSurface::writeObj(std::string filepath)
-{
-    std::ofstream outputFile(filepath);
-
-    for(std::size_t j=0; j<listTriangles.size();j++)
-    {
-        pcl::PointXYZ x0 = mapPoints.at(listTriangles.at(j).pointIndex[0]);
-        pcl::PointXYZ x1 = mapPoints.at(listTriangles.at(j).pointIndex[1]);
-        pcl::PointXYZ x2 = mapPoints.at(listTriangles.at(j).pointIndex[2]);
-
-        outputFile<<x0.x<<" "<<x0.y<<" "<<x0.z<<std::endl;
-        outputFile<<x1.x<<" "<<x1.y<<" "<<x1.z<<std::endl;
-        outputFile<<x2.x<<" "<<x2.y<<" "<<x2.z<<std::endl;
-    }
-    int counter=0;
-
-    outputFile.close();
-}*/
 
 void isoSurface::addPointToList(int x, int y, int z, int index)
 {
@@ -762,9 +748,6 @@ void isoSurface::saveMeshAsPly(std::string filename)
       pcl::PointXYZ p1 = getMapPoints().at(getTriangles().at(i).pointIndex[0]);
       pcl::PointXYZ p2 = getMapPoints().at(getTriangles().at(i).pointIndex[1]);
       pcl::PointXYZ p3 = getMapPoints().at(getTriangles().at(i).pointIndex[2]);
-      p1.z=p1.z;
-      p2.z=p2.z;
-      p3.z=p3.z;
       polygonsPts.push_back(p1);
       polygonsPts.push_back(p2);
       polygonsPts.push_back(p3);
@@ -788,4 +771,57 @@ void isoSurface::saveMeshVertices(std::string filename)
       fileStream<<p.x<<" "<<p.y<<" "<<p.z<<std::endl;
   }
   fileStream.close();
+}
+
+void isoSurface::removeDuplicatePoints()
+{
+  std::map<unsigned int, pcl::PointXYZ> mapPointCopy = getMapPoints();
+
+  pcl::PointCloud<pcl::PointXYZ> vertices;
+  for(std::size_t i=0; i<getMapPoints().size();i++)
+  {
+      pcl::PointXYZ p = getMapPoints().at(i);
+      vertices.push_back(p);
+  }
+
+  mapPoints.clear();
+
+  std::map<unsigned int, unsigned int> reindex;
+
+  pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+  kdtree.setInputCloud (vertices.makeShared());
+  int counter=0;
+
+  for(std::size_t i=0; i<vertices.size();i++)
+  {
+    if(reindex.count(i)==0){
+
+      pcl::PointXYZ searchPoint = vertices.at(i);
+      std::vector<int> pointIdxRadiusSearch;
+      std::vector<float> pointRadiusSquaredDistance;
+      if ( kdtree.radiusSearch (searchPoint, FLT_EPSILON, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 )
+      {
+        for(std::size_t j=0; j<pointIdxRadiusSearch.size();j++)
+        {
+          reindex.insert(std::map<unsigned int, unsigned int>::value_type(pointIdxRadiusSearch.at(j), counter));
+        }
+      }
+
+      mapPoints.insert(std::map<unsigned int, pcl::PointXYZ>::value_type(counter, searchPoint));
+      counter++;
+    }
+  }
+
+  std::vector<triangle> listTrianglesSaved = listTriangles;
+  listTriangles.clear();
+
+  for(std::size_t i=0; i<listTrianglesSaved.size();i++)
+  {
+    triangle tri;
+    tri.pointIndex[0] = reindex.at(listTrianglesSaved.at(i).pointIndex[0]);
+    tri.pointIndex[1] = reindex.at(listTrianglesSaved.at(i).pointIndex[1]);
+    tri.pointIndex[2] = reindex.at(listTrianglesSaved.at(i).pointIndex[2]);
+    listTriangles.push_back(tri);
+  }
+
 }

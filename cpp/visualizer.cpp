@@ -69,15 +69,6 @@ void visualizer::plot()
     addSurfaceMesh(viewer,CSRBFModel.getLevelSet(),0.,0.5, 0.8, 0.9, "CSRBFModel");
   }
 
-
-
-  //
-  // viewer->addCoordinateSystem (1.0);
-  // viewer->initCameraParameters ();
-  //
-  // viewer->setCameraPosition(25.6292, -183.596, 16.0492, -3.02173, -0.968898, -27.6203, 0.00256659, 0.415112, 0.909767);
-  // viewer->setCameraClipDistances(55.3839, 192.787);
-  // viewer->setPosition(372, 208);
    viewer->setSize(2000, 2000);
 
   //--------------------
@@ -172,15 +163,11 @@ void visualizer::addSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer, c
   pcl::PointCloud<pcl::PointXYZ> polygonsPts;
   std::vector<pcl::Vertices> polygonIds;
   const isoSurface iso = surface;
-  //std::ofstream fileStream("mesh.xyz", std::ios::out | std::ios::trunc);
   for(std::size_t i=0; i<iso.getTriangles().size();i++)
   {
       pcl::PointXYZ p1 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[0]);
       pcl::PointXYZ p2 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[1]);
       pcl::PointXYZ p3 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[2]);
-      //fileStream<<p1.x<<" "<<p1.y<<" "<<p1.z<<std::endl;
-      //fileStream<<p2.x<<" "<<p2.y<<" "<<p2.z<<std::endl;
-      //fileStream<<p3.x<<" "<<p3.y<<" "<<p3.z<<std::endl;
       p1.z=p1.z+deltaZ;
       p2.z=p2.z+deltaZ;
       p3.z=p3.z+deltaZ;
@@ -195,7 +182,6 @@ void visualizer::addSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer, c
   }
   pcl::toPCLPointCloud2 (polygonsPts, mesh.cloud);
   mesh.polygons = polygonIds;
-  //pcl::io::savePLYFileBinary ("surface.ply", mesh);
   viewer->addPolygonMesh(mesh,stringid);
   viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 0.85, stringid);
   viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, r,g,b,stringid);
@@ -232,7 +218,6 @@ void visualizer::addQuadsSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr view
   }}
   pcl::toPCLPointCloud2 (polygonsPts, mesh.cloud);
   mesh.polygons = polygonIds;
-  //pcl::io::savePLYFileBinary ("quadssurface.ply", mesh);
   viewer->addPolygonMesh(mesh,"quadsSurfaceMesh");
   viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 0.7, "quadsSurfaceMesh");
   viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.5, 0.95, 0.5, "quadsSurfaceMesh");

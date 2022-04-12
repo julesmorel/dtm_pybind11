@@ -54,6 +54,7 @@ void dtm::exportDTM(std::string filename){
     const isoSurface iso = functionalRBFModel.getLevelSet();
     mesh = buildMeshFromSurface(iso);
   }
+  std::cout<<"saving obj"<<std::endl;
   pcl::io::saveOBJFile (filename, mesh);
 }
 
@@ -61,20 +62,22 @@ pcl::PolygonMesh dtm::buildMeshFromSurface(const isoSurface &iso){
   pcl::PolygonMesh mesh;
   pcl::PointCloud<pcl::PointXYZ> polygonsPts;
   std::vector<pcl::Vertices> polygonIds;
+
   for(std::size_t i=0; i<iso.getTriangles().size();i++)
   {
-      pcl::PointXYZ p1 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[0]);
-      pcl::PointXYZ p2 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[1]);
-      pcl::PointXYZ p3 = iso.getMapPoints().at(iso.getTriangles().at(i).pointIndex[2]);
-      polygonsPts.push_back(p1);
-      polygonsPts.push_back(p2);
-      polygonsPts.push_back(p3);
       pcl::Vertices face;
-      face.vertices.push_back(3*i+0);
-      face.vertices.push_back(3*i+1);
-      face.vertices.push_back(3*i+2);
+      face.vertices.push_back(iso.getTriangles().at(i).pointIndex[0]);
+      face.vertices.push_back(iso.getTriangles().at(i).pointIndex[1]);
+      face.vertices.push_back(iso.getTriangles().at(i).pointIndex[2]);
       polygonIds.push_back(face);
   }
+
+  for(std::size_t i=0; i<iso.getMapPoints().size();i++)
+  {
+    pcl::PointXYZ p = iso.getMapPoints().at(i);
+    polygonsPts.push_back(p);
+  }
+
   pcl::toPCLPointCloud2 (polygonsPts, mesh.cloud);
   mesh.polygons = polygonIds;
   return mesh;

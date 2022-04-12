@@ -50,8 +50,6 @@ public:
     const pcl::PointXYZ& getBBMin(){return bbMin;}
     const pcl::PointXYZ& getBBMax(){return bbMax;}
 
-    //void writeObj(std::string filepath);
-
     double getVolumeInside() const {return volumeInsideMesh;}
     double getVolumeIntersected() const {return volumeIntersectedByMesh;}
     double getVolume() const {return volumeInsideMesh+0.5*volumeIntersectedByMesh;}
@@ -96,6 +94,8 @@ private:
     pcl::PointXYZ calculateIntersection(unsigned int nX, unsigned int nY, unsigned int nZ, unsigned int nEdgeNo);
     pcl::PointXYZ interpolate(float fX1, float fY1, float fZ1, float fX2, float fY2, float fZ2, float tVal1, float tVal2);
     pcl::PointXYZ getPointByRectangle(float v1x, float v1y, float v1z);
+
+    void removeDuplicatePoints();
 };
 
 #endif // ISOSURFACE2_H
