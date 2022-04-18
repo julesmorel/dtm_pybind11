@@ -60,7 +60,6 @@ public:
     bool isOnBorder();
     float distancePointToSurface(pcl::PointXYZ pt);
 
-
     std::vector<quadLeaf*>& getNeighbors(){return neighbors;}
 
     localCell* getLocalCell() {return cell;}
@@ -78,8 +77,14 @@ public:
 
     void approximate();
 
+    int getPositionCode(){return position;}
+
     bool getFlag(){return flag;}
     void setFlag(){flag=true;}
+
+    bool isBorder(){return border;}
+
+    void printDeltaLevel();
 
 private:
 
@@ -89,6 +94,8 @@ private:
 
     bool empty;
     bool flag;
+
+    bool border;
 
     rectangle quadrant;
     quadLeaf* parent;
@@ -103,6 +110,7 @@ private:
 
     void getPosition();
     void calcDeltaNeighbors();
+    void checkIsOnBorder();
 
     void keepPointsInSphere(pcl::KdTreeFLANN<pcl::PointXYZI> &kdtree, pcl::PointCloud<pcl::PointXYZI> &pCloud,pcl::PointCloud<pcl::PointXYZI> &pleaf);
 

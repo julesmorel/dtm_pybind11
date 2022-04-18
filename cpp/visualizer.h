@@ -22,4 +22,6 @@ private:
     void addQuadtreeAsMesh(pcl::visualization::PCLVisualizer::Ptr viewer, float z, double r, double g, double b, std::string stringid, float alpha);
     void addSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer ,const isoSurface & surface, float deltaZ, double r, double g, double b, std::string stringid);
     void addQuadsSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer, float z);
+    void addBorderCells(pcl::visualization::PCLVisualizer::Ptr viewer, float z, double r, double g, double b, std::string stringid, float alpha);
+
 };

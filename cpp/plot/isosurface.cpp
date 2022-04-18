@@ -817,11 +817,18 @@ void isoSurface::removeDuplicatePoints()
 
   for(std::size_t i=0; i<listTrianglesSaved.size();i++)
   {
-    triangle tri;
-    tri.pointIndex[0] = reindex.at(listTrianglesSaved.at(i).pointIndex[0]);
-    tri.pointIndex[1] = reindex.at(listTrianglesSaved.at(i).pointIndex[1]);
-    tri.pointIndex[2] = reindex.at(listTrianglesSaved.at(i).pointIndex[2]);
-    listTriangles.push_back(tri);
+    int id0 = reindex.at(listTrianglesSaved.at(i).pointIndex[0]);
+    int id1 = reindex.at(listTrianglesSaved.at(i).pointIndex[1]);
+    int id2 = reindex.at(listTrianglesSaved.at(i).pointIndex[2]);
+
+    if(id0!=id1 && id1!=id2 && id2!=id0)
+    {
+      triangle tri;
+      tri.pointIndex[0] = id0;
+      tri.pointIndex[1] = id1;
+      tri.pointIndex[2] = id2;
+      listTriangles.push_back(tri);
+    }
   }
 
 }

@@ -67,6 +67,7 @@ public:
 
     std::bitset<QUAD_MAX_LEVEL> quadLocationAdd( std::bitset<QUAD_MAX_LEVEL> a, std::bitset<QUAD_MAX_LEVEL> b );
 
+    void printList();
 private:
 
     rectangle rectangleRoot;
@@ -96,7 +97,6 @@ private:
 
     bool isLeafAboveThreshold();
 
-    void printList();
 };
 
 #endif // QUADTREE_H

@@ -1,9 +1,11 @@
 #include "visualizer.h"
+#include "core/quadleaf.h"
 #include <iostream>
 #include <thread>
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/surface/concave_hull.h>
 #include <pcl/io/ply_io.h>
+#include <sstream>
 
 visualizer::visualizer(pcl::PointCloud<pcl::PointXYZI> _pointsMin, pcl::PointCloud<pcl::PointXYZ> _pointsRectangleMin, surfaceFrbf _functionalRBFModel, surfaceCsrbf _CSRBFModel, bool _deformableModelApplied)
 {
@@ -57,17 +59,25 @@ void visualizer::plot()
   if(!deformableModelApplied){
     addSquare(viewer,pointsRectangleMin,lowestPtsZ-2*deltaZ,0.9,0.9,0.4,"bbs",1.0);
     addQuadtreeAsMesh(viewer,lowestPtsZ-2*deltaZ,0.5,0.5,0.5,"quatree",0.98);
+    //addBorderCells(viewer,lowestPtsZ-2.1*deltaZ,0.5,0.5,0.5,"borders",0.98);
     addSquare(viewer,pointsRectangleMin,lowestPtsZ-1*deltaZ,0.7,0.7,0.9,"bbsm",1.0);
     addQuadsSurfaceMesh(viewer,-1*deltaZ);
     addSurfaceMesh(viewer,functionalRBFModel.getLevelSet(),0.,0.5, 0.5, 0.95, "functionalRBFModel");
   }else{
     addSquare(viewer,pointsRectangleMin,lowestPtsZ-3*deltaZ,0.9,0.9,0.4,"bbs",1.0);
     addQuadtreeAsMesh(viewer,lowestPtsZ-3*deltaZ,0.5,0.5,0.5,"quatree",0.98);
+    //addBorderCells(viewer,lowestPtsZ-3.1*deltaZ,0.5,0.5,0.5,"borders",0.98);
     addSquare(viewer,pointsRectangleMin,lowestPtsZ-2*deltaZ,0.7,0.7,0.9,"bbsm",1.0);
     addQuadsSurfaceMesh(viewer,-2*deltaZ);
     addSurfaceMesh(viewer,functionalRBFModel.getLevelSet(),-1*deltaZ,0.5, 0.5, 0.95, "functionalRBFModel");
     addSurfaceMesh(viewer,CSRBFModel.getLevelSet(),0.,0.5, 0.8, 0.9, "CSRBFModel");
   }
+
+  viewer->initCameraParameters ();
+
+  viewer->setCameraPosition(48.8185, -53.4724, 14.2673, 0.0441494, 0.2745, -5.89377, -0.173229, 0.20421, 0.963478);
+  viewer->setCameraClipDistances(10.3839, 192.787);
+  viewer->setPosition(20, 200);
 
    viewer->setSize(2000, 2000);
 
@@ -113,6 +123,7 @@ void visualizer::addQuadtreeAsMesh(pcl::visualization::PCLVisualizer::Ptr viewer
 
   std::deque<quadLeaf*> listLeaf = functionalRBFModel.getTree()->getListLeaf();
   for(int i=0;i<listLeaf.size();i++){
+
     pcl::PointCloud<pcl::PointXYZ> rect = listLeaf.at(i)->getQuadrant().getRect();
 
     pcl::PointXYZ p1;
@@ -155,6 +166,73 @@ void visualizer::addQuadtreeAsMesh(pcl::visualization::PCLVisualizer::Ptr viewer
   viewer->addPolylineFromPolygonMesh(mesh,"Polymesh");
   viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 0.5, "Polymesh");
   viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.3, 0.3, 0.3, "Polymesh");
+}
+
+void visualizer::addBorderCells(pcl::visualization::PCLVisualizer::Ptr viewer, float z, double r, double g, double b, std::string stringid, float alpha)
+{
+  pcl::PolygonMesh mesh;
+  pcl::PointCloud<pcl::PointXYZ> polygonsPts;
+  std::vector<pcl::Vertices> polygonIds;
+
+  std::deque<quadLeaf*> listLeaf = functionalRBFModel.getTree()->getListLeaf();
+  for(int i=0;i<listLeaf.size();i++){
+    quadLeaf* leaf = listLeaf.at(i);
+    pcl::PointCloud<pcl::PointXYZ> rect = leaf->getQuadrant().getRect();
+
+    if(leaf->isOnBorder())
+    {
+      pcl::PointXYZ p1;
+      p1.x=alpha*rect.at(0).x+(1-alpha)*rect.at(2).x;
+      p1.y=alpha*rect.at(0).y+(1-alpha)*rect.at(2).y;
+      p1.z=z;
+      pcl::PointXYZ p2;
+      p2.x=alpha*rect.at(1).x+(1-alpha)*rect.at(3).x;
+      p2.y=alpha*rect.at(1).y+(1-alpha)*rect.at(3).y;
+      p2.z=z;
+      pcl::PointXYZ p3;
+      p3.x=alpha*rect.at(2).x+(1-alpha)*rect.at(0).x;
+      p3.y=alpha*rect.at(2).y+(1-alpha)*rect.at(0).y;
+      p3.z=z;
+      pcl::PointXYZ p4;
+      p4.x=alpha*rect.at(3).x+(1-alpha)*rect.at(1).x;
+      p4.y=alpha*rect.at(3).y+(1-alpha)*rect.at(1).y;
+      p4.z=z;
+
+      polygonsPts.push_back(p1);
+      polygonsPts.push_back(p2);
+      polygonsPts.push_back(p3);
+      polygonsPts.push_back(p4);
+
+      pcl::Vertices faces1;
+      faces1.vertices.push_back(4*i+0);
+      faces1.vertices.push_back(4*i+1);
+      faces1.vertices.push_back(4*i+2);
+
+      pcl::Vertices faces2;
+      faces2.vertices.push_back(4*i+2);
+      faces2.vertices.push_back(4*i+3);
+      faces2.vertices.push_back(4*i+0);
+
+      polygonIds.push_back(faces1);
+      polygonIds.push_back(faces2);
+
+      double orientation[]={90.,0.,0.};
+
+      std::stringstream stream;
+      stream << leaf->getLocationCode();
+      std::string str;
+      stream >> str;
+      std::string text=str.substr(str.size() - 8);
+      viewer->addText3D (text,p1,orientation,0.3,0.3,0.3,0.3,text);
+    }
+  }
+
+  pcl::toPCLPointCloud2 (polygonsPts, mesh.cloud);
+  mesh.polygons = polygonIds;
+
+  //viewer->addPolygonMesh(mesh,"borders");
+  //viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 0.5, "borders");
+  //viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.3, 0.3, 0.3, "borders");
 }
 
 void visualizer::addSurfaceMesh(pcl::visualization::PCLVisualizer::Ptr viewer, const isoSurface & surface, float deltaZ, double r, double g, double b, std::string stringid)

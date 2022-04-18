@@ -72,26 +72,6 @@ quadLeaf::quadLeaf(quadLeaf* pParent, rectangle pRect, int pLevel, std::bitset<Q
       //we consider the point in a sphere centered on that leaf
       //and compute the local approximation
       keepPointsInSphere(kdtree,pPts,pointsInLeaf);
-      /*if(ptsSub.size()==0){
-        std::cout<<"Warning! one cell is empty!"<<std::endl;
-        std::ofstream outfile;
-        outfile.open("test.xyz", std::ios_base::app);
-        for(int i=0;i<pointsInLeaf.size();i++)
-        {
-            pcl::PointXYZI p = pointsInLeaf.at(i);
-            outfile <<p.x<<" "<<p.y<<" "<<p.z<<std::endl;
-        }
-      }*/
-      // cell = new localCell (ptsSub,0.,true);
-      //
-      // //Test extrem values of local patch coeffs
-      // std::vector<double> coef = cell->getCoeff();
-      // if(fabs(coef.at(0)*coef.at(1)*coef.at(2))>0.1)
-      // {
-      //   flag=true;
-      // }else{
-      //   flag=false;
-      // }
       updateBoundingBox(ptsSub);
     }
     notToDivide = false;
@@ -103,6 +83,7 @@ quadLeaf::quadLeaf(quadLeaf* pParent, rectangle pRect, int pLevel, std::bitset<Q
   locationCode = pLocationCode;
   getPosition();
   calcDeltaNeighbors();
+  checkIsOnBorder();
   isRoot = false;
 }
 
@@ -310,6 +291,37 @@ void quadLeaf::keepPointsInSphere(pcl::KdTreeFLANN<pcl::PointXYZI> &kdtree, pcl:
     }
 }
 
+void quadLeaf::checkIsOnBorder()
+{
+  border=false;
+  if(parent!=NULL){
+    if(parent->isBorder()){
+      if(parent->getPositionCode()==SOUTH_WEST||parent->getPositionCode()==SOUTH_EAST){
+        if(position==SOUTH_WEST||position==SOUTH_EAST){
+          border=true;
+        }
+      }
+      if(parent->getPositionCode()==NORTH_WEST||parent->getPositionCode()==NORTH_EAST){
+        if(position==NORTH_WEST||position==NORTH_EAST){
+          border=true;
+        }
+      }
+      if(parent->getPositionCode()==NORTH_WEST||parent->getPositionCode()==SOUTH_WEST){
+        if(position==NORTH_WEST||position==SOUTH_WEST){
+          border=true;
+        }
+      }
+      if(parent->getPositionCode()==NORTH_EAST||parent->getPositionCode()==SOUTH_EAST){
+        if(position==NORTH_EAST||position==SOUTH_EAST){
+          border=true;
+        }
+      }
+    }
+  }else{
+    border=true;
+  }
+}
+
 void quadLeaf::fillWithNeighbors(pcl::PointCloud<pcl::PointXYZI>& pCloud)
 {
   //std::cout<<" Rebuilding : "<<locationCode.to_string()<<std::endl;
@@ -344,4 +356,9 @@ void quadLeaf::fillWithNeighbors(pcl::PointCloud<pcl::PointXYZI>& pCloud)
   center = quadrant.getCenter(ptsSub);
   cell = new localCell (ptsSub,0);
   empty=false;
+}
+
+void quadLeaf::printDeltaLevel()
+{
+  std::cout<<deltaLevelEast<<" "<<deltaLevelNorth<<" "<<deltaLevelWest<<" "<<deltaLevelSouth<<" "<<isOnBorder()<<std::endl;
 }
