@@ -8,6 +8,7 @@
 #include "core/surfacefrbf.h"
 #include "core/surfaceCsrbf.h"
 #include "core/rectangle.h"
+#include <pcl/PolygonMesh.h>
 
 class dtm
 {
